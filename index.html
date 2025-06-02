@@ -2,32 +2,259 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Image Puzzle Game</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PuzzlePix</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #5b4fff;
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .header h1 {
+      color: var(--primary);
+      font-size: 2rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header .info {
+      font-weight: 600;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .info-box {
+      background: #e9edfd;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 6px var(--shadow);
+    }
+
+    .info-box span.label {
+      font-weight: 600;
+    }
+
+    .info-box span.value {
+      font-weight: bold;
+      color: #1e1e60;
+      font-size: 1.1rem;
+    }
+
+    .container {
+      display: flex;
+      gap: 2rem;
+      max-width: 1200px;
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .left-column {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .right-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .settings, .game-area, .how-to {
+      background: #f2f5ff;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px var(--shadow);
+      width: 100%;
+    }
+
+    .settings label, .settings select, .settings input[type="file"] {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .settings select, .settings input[type="file"], .settings button {
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    .settings button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background-color 0.3s;
+    }
+
+    .settings button:hover {
+      background-color: #4a40e0;
+    }
+
+    #puzzle-container {
+      margin-top: 1rem;
+      width: 500px;
+      height: 380px;
+      display: grid;
+      gap: 4px;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #eee;
+      align-self: center;
+    }
+
+    .tile {
+      background-size: 500px 380px;
+      cursor: grab;
+      user-select: none;
+      border-radius: 0.5rem;
+      transition: transform 0.2s ease;
+    }
+
+    .tile:hover {
+      transform: scale(1.05);
+    }
+
+    .how-to h2 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 90%;
+      width: 350px;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      color: #5b4fff;
+    }
+
+    .modal-content button {
+      margin-top: 1rem;
+      padding: 0.5rem 1.2rem;
+      background: #5b4fff;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🧩 Image Puzzle Game</h1>
-
-    <div class="controls">
-      <label for="difficulty">Difficulty:</label>
-      <select id="difficulty">
-        <option value="3">3x3</option>
-        <option value="4">4x4</option>
-        <option value="5">5x5</option>
-      </select>
-
-      <input type="file" id="imageUpload" accept="image/*">
-      <button id="startBtn">Start Puzzle</button>
-      <span>Moves: <span id="moveCounter">0</span></span>
+  <div class="header">
+    <div>
+      <h1>
+        <i class="fa-solid fa-puzzle-piece" style="color: #f85a16;"></i>
+        <!-- <i class="fa-solid fa-camera-retro" style="color: #14479f;"></i> -->
+        The Image Puzzle Game
+      </h1>
+      <!-- <h4 style="margin: 4px 0 0 2px;">The Image Puzzle Game</h4> -->
     </div>
-
-    <div id="puzzle-container" class="puzzle-grid"></div>
+    <div class="info">
+      <div class="info-box">
+        <img src="https://img.icons8.com/fluency/24/stopwatch.png" alt="Time"/>
+        <span class="label">Time:</span>
+        <span class="value" id="timer">00:00</span>
+      </div>
+      <div class="info-box">
+        <img src="https://img.icons8.com/color/24/123.png" alt="Moves"/>
+        <span class="label">Moves:</span>
+        <span class="value" id="moves">0</span>
+      </div>
+    </div>
   </div>
-  <div id="messageBox" class="message-box hidden"></div>
 
+  <div class="container">
+    <div class="left-column">
+      <div class="game-area">
+        <div id="puzzle-container"></div>
+      </div>
+      
+    </div>
+    <div class="right-column">
+      <div class="settings">
+        <label for="difficulty">Grid Size</label>
+        <select id="difficulty">
+          <option value="3">3×3 (Easy)</option>
+          <option value="4">4×4 (Medium)</option>
+          <option value="5">5×5 (Hard)</option>
+        </select>
+        <label for="imageUpload">Upload your own image</label>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button id="startBtn">🎮 Start New Game</button>
+      </div>
+    </div>
+  </div>
 
-  <script src="script.js"></script>
+  <div id="successModal" class="modal">
+    <div class="modal-content">
+      <h2>🎉🎊 Congratulations! 🎊🎉</h2>
+      <p>You solved the puzzle in <span id="finalMoves"></span> moves and <span id="finalTime"></span>.</p>
+      <button onclick="closeModal()">Close</button>
+      <button onclick="playAgain()">🔁 Play Again</button>
+    </div>
+  </div>
+
+  <script src="script1.js"></script>
 </body>
 </html>
