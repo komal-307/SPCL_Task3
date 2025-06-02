@@ -1,118 +1,171 @@
-const puzzleContainer = document.getElementById('puzzle-container');
-const moveCounter = document.getElementById('moveCounter');
-const startBtn = document.getElementById('startBtn');
-const difficultySelect = document.getElementById('difficulty');
-const imageUpload = document.getElementById('imageUpload');
-
 let gridSize = 3;
-let imageSrc = 'https://picsum.photos/300'; // fallback
-let moves = 0;
-let tiles = [];
+    let customImageURL = 'https://picsum.photos/300';
+    const container = document.getElementById('puzzle-container');
+    const startBtn = document.getElementById('startBtn');
+    const difficultySelect = document.getElementById('difficulty');
+    const imageUpload = document.getElementById('imageUpload');
+    const movesDisplay = document.getElementById('moves');
+    const timerDisplay = document.getElementById('timer');
+    let moves = 0;
+    let tiles = [];
+    let timer;
+    let secondsElapsed = 0;
 
-difficultySelect.addEventListener('change', () => {
-  gridSize = parseInt(difficultySelect.value);
-});
+    imageUpload.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          customImageURL = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
 
-imageUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (event) {
-      const img = new Image();
-      img.onload = () => {
-        imageSrc = event.target.result;
-        setupPuzzle();
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-});
+    function startTimer() {
+      clearInterval(timer);
+      secondsElapsed = 0;
+      updateTimerDisplay();
+      timer = setInterval(() => {
+        secondsElapsed++;
+        updateTimerDisplay();
+      }, 1000);
+    }
 
-startBtn.addEventListener('click', () => {
-  moves = 0;
-  moveCounter.textContent = moves;
-  setupPuzzle();
-});
+    function stopTimer() {
+      clearInterval(timer);
+    }
 
-function setupPuzzle() {
-  puzzleContainer.innerHTML = '';
-  puzzleContainer.style.gridTemplateColumns = `repeat(${gridSize}, 100px)`;
-  puzzleContainer.style.gridTemplateRows = `repeat(${gridSize}, 100px)`;
-  puzzleContainer.style.width = `${gridSize * 100}px`;
-  puzzleContainer.style.height = `${gridSize * 100}px`;
-  tiles = [];
+    function updateTimerDisplay() {
+      const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+      const seconds = String(secondsElapsed % 60).padStart(2, '0');
+      timerDisplay.textContent = `Time: ${minutes}:${seconds}`;
+    }
 
-  for (let i = 0; i < gridSize * gridSize; i++) {
-    const tile = document.createElement('div');
-    tile.classList.add('tile');
-    tile.draggable = true;
-    tile.dataset.index = i;
+    function createTiles() {
+      container.innerHTML = '';
+      container.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+      container.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+      tiles = [];
+      moves = 0;
+      movesDisplay.textContent = 'Moves: 0';
+      const total = gridSize * gridSize;
 
-    const row = Math.floor(i / gridSize);
-    const col = i % gridSize;
+      for (let i = 0; i < total; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.setAttribute('draggable', true);
+        tile.dataset.correctIndex = i;
 
-    tile.style.backgroundImage = `url(${imageSrc})`;
-    tile.style.backgroundSize = `${gridSize * 100}px ${gridSize * 100}px`;
-    tile.style.backgroundPosition = `-${col * 100}px -${row * 100}px`;
+        const row = Math.floor(i / gridSize);
+        const col = i % gridSize;
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+        const tileWidth = containerWidth / gridSize;
+        const tileHeight = containerHeight / gridSize;
 
-    tile.addEventListener('dragstart', dragStart);
-    tile.addEventListener('dragover', dragOver);
-    tile.addEventListener('drop', drop);
+        tile.style.backgroundImage = `url('${customImageURL}')`;
+        tile.style.backgroundPosition = `-${col * tileWidth}px -${row * tileHeight}px`;
+        tile.style.backgroundSize = `${containerWidth}px ${containerHeight}px`;
 
-    tiles.push(tile);
-  }
+        tile.addEventListener('dragstart', dragStart);
+        tile.addEventListener('dragover', dragOver);
+        tile.addEventListener('drop', drop);
 
-  shuffleTiles();
-  tiles.forEach(tile => puzzleContainer.appendChild(tile));
-}
+        tiles.push(tile);
+        container.appendChild(tile);
+      }
+      updateTilePositions();
+    }
 
-function shuffleTiles() {
-  for (let i = tiles.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-  }
-}
+    function shuffleTiles() {
+      tiles.sort(() => Math.random() - 0.5);
+      tiles.forEach(tile => container.appendChild(tile));
+      updateTilePositions();
+    }
 
-let draggedTile = null;
+    function updateTilePositions() {
+      Array.from(container.children).forEach((tile, index) => {
+        tile.dataset.currentIndex = index;
+      });
+    }
 
-function dragStart(e) {
-  draggedTile = this;
-}
+    function dragStart(e) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.currentIndex);
+    }
 
-function dragOver(e) {
-  e.preventDefault();
-}
+    function dragOver(e) {
+      e.preventDefault();
+    }
 
-function drop(e) {
-  if (this === draggedTile) return;
+    function drop(e) {
+      e.preventDefault();
+      const fromIndex = e.dataTransfer.getData('text');
+      const toIndex = e.target.dataset.currentIndex;
 
-  const fromIndex = tiles.indexOf(draggedTile);
-  const toIndex = tiles.indexOf(this);
+      if (fromIndex === toIndex) return;
 
-  puzzleContainer.insertBefore(draggedTile, this);
-  puzzleContainer.insertBefore(this, puzzleContainer.children[fromIndex]);
+      const fromTile = container.children[fromIndex];
+      const toTile = container.children[toIndex];
 
-  [tiles[fromIndex], tiles[toIndex]] = [tiles[toIndex], tiles[fromIndex]];
+      const fromClone = fromTile.cloneNode(true);
+      const toClone = toTile.cloneNode(true);
 
-  moves++;
-  moveCounter.textContent = moves;
+      attachEvents(fromClone);
+      attachEvents(toClone);
 
-  if (isSolved()) {
-    setTimeout(() => alert(`🎉 You solved it in ${moves} moves!`), 200);
-  }
-}
+      container.replaceChild(fromClone, toTile);
+      container.replaceChild(toClone, fromTile);
 
-function isSolved() {
-  return tiles.every((tile, i) => tile.dataset.index == i);
-}
-function showMessage(text, type) {
-  const messageBox = document.getElementById('messageBox');
-  messageBox.textContent = text;
-  messageBox.className = `message-box ${type} show`;
+      updateTilePositions();
+      moves++;
+      movesDisplay.textContent = `Moves: ${moves}`;
+      checkSolved();
+    }
 
-  setTimeout(() => {
-    messageBox.classList.remove("show");
-    messageBox.classList.add("hidden");
-  }, 3000);
-}
+    function attachEvents(tile) {
+      tile.addEventListener('dragstart', dragStart);
+      tile.addEventListener('dragover', dragOver);
+      tile.addEventListener('drop', drop);
+    }
+
+    function checkSolved() {
+      const isSolved = Array.from(container.children).every((tile, index) => {
+        return parseInt(tile.dataset.correctIndex) === index;
+      });
+
+      if (isSolved) {
+        stopTimer();
+        showModal();
+      }
+    }
+
+    function formatTime(seconds) {
+      const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${minutes}:${secs}`;
+    }
+
+    function showModal() {
+      document.getElementById('finalMoves').textContent = moves;
+      document.getElementById('finalTime').textContent = formatTime(secondsElapsed);
+      document.getElementById('successModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('successModal').style.display = 'none';
+    }
+
+    function playAgain() {
+      closeModal();
+      startBtn.click();
+    }
+
+    startBtn.addEventListener('click', () => {
+      gridSize = parseInt(difficultySelect.value);
+      createTiles();
+      shuffleTiles();
+      startTimer();
+    });
+
+    createTiles();
